@@ -1,0 +1,201 @@
+---
+title: "Ferry Trends"
+format: 
+    typst:
+        template-partials:
+          - C:/coding/psrc-rtp-2026/templates/rtp-discussion-papers/typst-show.typ
+          - C:/coding/psrc-rtp-2026/templates/rtp-discussion-papers/typst-template.typ
+
+params:
+  discussion_date: "October 2024"
+  discussion_topic: "Ferries"
+
+---
+
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(gt)
+
+source("C:/coding/psrc-rtp-2026/functions.R")
+
+```
+
+# Ferries
+The waters of Puget Sound and its nearby lakes have provided a convenient way to transport people and connect communities  since pre-European contact. By the late 1800s and early 1900s, the waters of Puget Sound were bustling with a Mosquito Fleet of privately operated ferries that transported millions of people across Puget Sound, Lake Washington, and other waterways. The marine environment is still an important transportation thoroughfare for this region. Passenger-only and multimodal ferries are an important component of the integrated high-capacity transit network envisioned in VISION 2050.
+
+```{r national-calculations, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+metro_area_recovery <- readRDS("data/metro-area-recovery.rds")
+metro_area_recovery_table <- psrc_data_table(df=metro_area_recovery, title="YTD Boardings by Region: January to July", lab_color = "#00A7A0", num_cols = c("Pre-Pandemic Riders", "Current Riders", "Rank"), per_cols = c("Ratio"))
+
+metro_area_annual <- readRDS("data/metro_area_annual.rds")
+metro_area_chart <- psrc_bar_chart(df=metro_area_annual, x="Metro Area", y="Annual Ridership", fill="PSRC", colors=c("#BCBEC0", "#00A7A0"), title="Annual Ferry Boardings by Region: 2023", source="Source: National Transit Database")
+
+```
+
+## National Trends
+Four agencies provide ferry service within the central Puget Sound region. In 2023, the region's ferries moved the second most people in the country, behind only New York City. The Washington State Ferries continue to move more people than any other single ferry system in the United States. 
+
+```{r metro-area-chart, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8, fig.height = 6}
+
+metro_area_chart
+
+```
+
+\pagebreak
+Ferry systems across the country were impacted by the global pandemic and continue to recover. In the first seven months of 2024, the PSRC region carried approximately 81% of the passengers that it moved in 2019. This ranks #9 out of the 18 metropolitan regions that have ferry service that report to the Federal Transit Administration. Many of the ferry systems that have more fully recovered carry far fewer passengers than the PSRC region's ferries.
+
+```{r metro-recovery-table, echo=FALSE, warning=FALSE, message=FALSE}
+
+metro_area_recovery_table
+
+```
+
+\pagebreak
+## Ridership by Agency
+```{r agency-calculations, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+agency_recovery <- readRDS("data/agency_recovery.rds")
+wsf_recovery <- agency_recovery |> filter(geography == "Washington State Ferries")
+wsf_2019 <- wsf_recovery |> filter(year == "2019") |> select("estimate") |> pull() |> sum()
+wsf_2024 <- wsf_recovery |> filter(year == "2024") |> select("estimate") |> pull() |> sum()
+wsf_shr <- wsf_2024 / wsf_2019
+
+non_wsf_recovery <- agency_recovery |> filter(geography != "Washington State Ferries")
+non_wsf_2019 <- non_wsf_recovery |> filter(year == "2019") |> select("estimate") |> pull() |> sum()
+non_wsf_2024 <- non_wsf_recovery |> filter(year == "2024") |> select("estimate") |> pull() |> sum()
+non_wsf_shr <- non_wsf_2024 / non_wsf_2019
+
+non_wsf_chart <- psrc_column_chart(df=non_wsf_recovery, x="geography", y="estimate", fill="year", colors=c("#BCBEC0", "#91268F", "#F05A28", "#8CC63E", "#00A7A0"), title = "Jan-July Non-WSF Ferry Boardings", source= "Source: National Transit Database")
+
+wsf_chart <- psrc_column_chart(df=wsf_recovery, x="geography", y="estimate", fill="year", colors=c("#BCBEC0","#91268F", "#F05A28", "#8CC63E", "#00A7A0"), title = "Jan-July WSF Ferry Boardings", source= "Source: National Transit Database")
+
+```
+
+Three counties in the PSRC region operate ferry service. The ridership on county ferries continue to recover from the pandemic and more than 1.2 million boardings occurred in the first seven months of 2024 (93% of 2019 boardings). 
+
+```{r non-wsf-chart, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8}
+
+non_wsf_chart
+
+```
+
+Washington State Ferries ridership continued to grow in the first seven months of 2024 as well, carrying almost 11 million passengers (80% of 2019 boardings). As noted previously, Washington State Ferries carries more passengers than any other ferry system in the United States.
+```{r wsf-chart, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8}
+
+wsf_chart
+
+```
+
+\pagebreak
+## Ridership by Route
+```{r route-calculations, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+route_recovery <- readRDS("data/route_recovery.rds") 
+
+route_recovery_chart <- psrc_bar_chart(df=route_recovery, x="route", y="ratio", fill="operator", colors=c("#91268F", "#F05A28", "#8CC63E", "#00A7A0"), title="Ratio of 2023 to 2024 Passengers: January to June", source="Source: Ferry Operator Performance Dashboards", labels=scales::label_percent())
+
+```
+
+The four ferry operators in the Central Puget Sound operate fourteen (14) different routes that serve the region. Every route has shown passenger growth in the first six months of 2024 when compared to 2023. The fastest growing routes to date were the five (5) routes operated by Kitsap Transit. One possible driver of this growth is the additional funding for ferry operations that was provided by the State of Washington to increase frequencies of passenger only routes that serve similar markets as the Washington State Ferries. 
+
+```{r route-chart, echo=FALSE, warning=FALSE, message=FALSE, , fig.width = 8, fig.height = 6}
+
+route_recovery_chart
+
+```
+
+\pagebreak
+## Who uses the Washington State Ferries?  
+Washington State Ferries periodically performs on-board surveys for users of the ferry system to better understand who uses ferries and why. The latest on-board survey was performed in the Fall of 2023.
+
+```{r demographic-calculations, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+wsf_demographics <- readRDS("data/wsf_survey.rds")
+
+wsf_age_chart <- psrc_column_chart(df=wsf_demographics |> filter(metric == "Age" & variable !="Total"), x="variable", y="share", fill="metric", colors=c("#00A7A0"), title = "Age of Riders on a Washington State Ferry", source= "Source: WSF On-Board Survey, Fall 2023", labels=scales::label_percent(), legend = FALSE)
+
+wsf_disabled_chart <- psrc_column_chart(df=wsf_demographics |> filter(metric == "Disability" & variable !="Total"), x="variable", y="share", fill="variable", colors=c("#73CFCB", "#BCBEC0"), title = "Riders with a Disability on a Washington State Ferry", source= "Source: WSF On-Board Survey, Fall 2023", labels=scales::label_percent(), legend = FALSE)
+
+wsf_race_chart <- psrc_bar_chart(df=wsf_demographics |> filter(metric == "Race" & variable !="Total"), x="variable", y="share", fill="metric", colors=c("#C388C2"), title = "Race & Ethnicity for Riders on a Washington State Ferry", source= "Source: WSF On-Board Survey, Fall 2023", labels=scales::label_percent(), legend = FALSE)
+
+wsf_income_chart <- psrc_bar_chart(df=wsf_demographics |> filter(metric == "Household Income" & variable !="Total"), x="variable", y="share", fill="metric", colors=c("#8CC63E"), title = "Household Income for Riders on a Washington State Ferry", source= "Source: WSF On-Board Survey, Fall 2023", labels=scales::label_percent(), legend = FALSE)
+
+wsf_purpose_chart <- psrc_column_chart(df=wsf_demographics |> filter(metric == "Purpose" & variable !="Total"), x="variable", y="share", fill="metric", colors=c("#91268F"), title = "Reason for Trip on a Washington State Ferry", source= "Source: WSF On-Board Survey, Fall 2023", labels=scales::label_percent(), legend = FALSE)
+
+wsf_mode_chart <- psrc_bar_chart(df=wsf_demographics |> filter(metric == "Mode" & variable !="Total"), x="variable", y="share", fill="metric", colors=c("#F05A28"), title = "Mode used to get to a Washington State Ferry", source= "Source: WSF On-Board Survey, Fall 2023", labels=scales::label_percent(), legend = FALSE)
+
+wsf_passenger_chart <- psrc_column_chart(df=wsf_demographics |> filter(metric == "Passenger Type" & variable !="Total"), x="variable", y="share", fill="metric", colors=c("#F7A489"), title = "Types of Passengers on Washington State Ferries", source= "Source: WSF On-Board Survey, Fall 2023", labels=scales::label_percent(), legend = FALSE)
+
+
+```
+
+### Age and Disabilities
+In the fall of 2023, 29% of passengers were over the age of 65, almost twice the share of the region's older adult population. Approximately 12% of riders reported having a disability of some sort, similar to the share of the regional population with a disability.
+
+```{r wsf-age-chart, echo=FALSE, warning=FALSE, message=FALSE, , fig.width = 8}
+
+wsf_age_chart
+wsf_disabled_chart
+
+```
+
+\pagebreak
+### Race & Ethnicity  
+People of many races and ethnic backgrounds ride a Washington State Ferry although a larger share of white users rode a ferry as compared to the region. In the Fall 2023 survey, approximately 11% of all riders were people of color. This compares with almost 40% of the region's population in 2023 being people of color. 
+
+```{r wsf-race-chart, echo=FALSE, warning=FALSE, message=FALSE, , fig.width = 8, fig.height = 8}
+
+wsf_race_chart
+
+```
+
+\pagebreak
+### Household Income
+Over half (55%) all survey responses were from households that made at least $100,000 per year. This is slightly above the median household income for the entire region and is higher than the median income for Kitsap County households.  
+
+```{r wsf-income-chart, echo=FALSE, warning=FALSE, message=FALSE, , fig.width = 8, fig.height = 8}
+
+wsf_income_chart
+
+```
+
+\pagebreak
+### Purpose and Passenger Type  
+There are many reasons people board a Washington State Ferry, and some trips include multiple purposes. About 1/4 of all trips on a ferry in the fall of 2023 included a work purpose and close to 18% of riders were traveling to reach medical appointments. Recreation and visiting other people both accounted for more ferry trips than people going to work in the 2023 survey.  
+
+```{r wsf-purpose-chart, echo=FALSE, warning=FALSE, message=FALSE, , fig.width = 8}
+
+wsf_purpose_chart
+
+```
+
+About 2% of ferry riders board the ferry on a bike with another 18% walking on to the vessel at the terminal. Access via private vehicle made up almost 80% of all ferry boardings in the survey.  
+
+```{r wsf-passenger-chart, echo=FALSE, warning=FALSE, message=FALSE, , fig.width = 8}
+
+wsf_passenger_chart
+
+```
+
+\pagebreak
+### Mode of Travel to the Ferry Terminal
+Although most passengers on a Washington State Ferry arrive at the terminal in a private vehicle, the different modes of access vary widely. People use public transit, bikes, walking, rental cars, rideshare services and carpools to reach the terminals. With so many different modes of access, multi-modal access options are important considerations in terminal design.
+
+```{r wsf-mode-chart, echo=FALSE, warning=FALSE, message=FALSE, , fig.width = 8, fig.height = 8}
+
+wsf_mode_chart
+
+```
+
+\pagebreak
+## What is the RTP and how are Ferries connected to it?
+The Regional Transportation Plan envisions an integrated system that supports the goals of VISION 2050, which calls for increased investment in transportation to support a growing population and economy. VISION 2050 emphasizes investing in transportation projects and programs that support local and regional growth centers and high-capacity transit station areas in particular. These policies emphasize the importance of public transit to achieving the VISION 2050 regional growth strategy.  
+
+![](images/rtp-emphasis-areas.png){fig-align="center"}
+
+Ferries have been identified as an Emphasis Area in the Regional Transportation Plan. As noted earlier, ferries play an important role in serving the transportation needs of a growing region. Ferries provide connections to economic opportunities, high quality jobs and a variety of social and recreational opportunities for the people of the Central Puget Sound region.  
+
+For more information or to get invovled in the Regional Transportation Plan, please visit <https://www.psrc.org/planning-2050/regional-transportation-plan> .
