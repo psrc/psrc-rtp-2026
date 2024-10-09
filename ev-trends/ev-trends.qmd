@@ -1,0 +1,213 @@
+---
+title: "Electrification of the Transportation Fleet"
+format: 
+    typst:
+        template-partials:
+          - C:/coding/psrc-rtp-2026/templates/rtp-discussion-papers/typst-show.typ
+          - C:/coding/psrc-rtp-2026/templates/rtp-discussion-papers/typst-template.typ
+
+params:
+  discussion_date: "October 2024"
+  discussion_topic: "Climate"
+
+
+
+---
+
+```{r setup, , echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(readr)
+library(ggplot2)
+library(tidyr)
+library(gt)
+library(wordcloud2)
+library(webshot)
+library(htmlwidgets)
+library(leaflet)
+library(sf)
+
+source("C:/coding/psrc-rtp-2026/functions.R")
+
+```
+
+# Technology/Decarbonization's Role in the RTP
+Decarbonization of the transportation fleet is an important part of PSRC's Four-Part Greenhouse Gas Strategy. Significant activity is underway at all levels to transition to zero-emission vehicles and cleaner fuels, particularly electric vehicles (EVs). Since 2019, PSRC and the Puget Sound Clean Air Agency have partnered on a Regional EV Collaboration to provide technical assistance and an information sharing platform to jurisdictions and other stakeholders to support the advancement of electric vehicles and infrastructure.
+
+## Regional Trends
+
+```{r region-ev-calcs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+new_region_all_owners <- readRDS("data/new_vehicle_registrations_region_all_owners.rds")
+
+region_ev_chart <- psrc_line_chart(df=new_region_all_owners, x="date", y="share", fill="veh_power", colors = c("#91268F", "#E3C9E3", "#BCBEC0"), breaks = 12, title="Share of New Vehicle Registrations by Power Type", source="Source: Washington State Department of Licensing", labels = scales::label_percent(), xdate="yes")
+
+all_region_all_owners <- readRDS("data/all_vehicle_registrations.rds") |>
+  filter(geography == "Region") |>
+  mutate(year = year(date)) |>
+  select("year", "ev", "non_ev", "total_vehicles") |>
+  group_by(year) |>
+  summarise(ev = sum(ev), non_ev = sum(non_ev), total_vehicles = sum(total_vehicles)) |>
+  as_tibble() |>
+  mutate(ev_share = ev / total_vehicles, non_ev_share = non_ev / total_vehicles)
+
+```
+
+In 2023, almost 40% of all new vehicle registrations in the region were electric or hybrid-electric vehicles. This trend has continued in the first half of 2024 with each vehicle type accounting for more than 20% of all new vehicle registrations. This is in stark contrast to 2017 when EV registrations accounted for about 1% of all new vehicle registrations and hybrid vehicles around 6%.
+
+```{r region-ev-plot, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8, fig.height = 4}
+
+region_ev_chart
+
+```
+
+It takes approximately a dozen years for the entire vehicle fleet to turn over and as such it will take time for electric vehicles to become the dominant vehicle type in the region. With more than 20% of all new vehicle registrations now EVs, the total share of EVs to all vehicle registrations (new vehicles, used vehicles and license renewals) was 4.5% in the first half of 2024. For perspective, the share of EVs to all vehicles in 2017 was less than 0.5%. 
+
+```{r county-ev-calcs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+new_county_all_owners <- readRDS("data/new_vehicle_registrations_county_all_owners.rds")
+
+max_yr <- max(year(new_county_all_owners$date))
+max_mo <- new_county_all_owners |>
+  filter(year(date) == max_yr) |>
+  select("date") |>
+  distinct() |> 
+  pull() |>
+  max() |>
+  month()
+
+county_ev_registrations <- new_county_all_owners |> 
+  filter(month(date) <= max_mo) |>
+  mutate(year = year(date)) |>
+  select("year", County = "county", "veh_power", "new_vehicles") |>
+  group_by(year, County, veh_power) |>
+  summarize(estimate = sum(new_vehicles)) |>
+  as_tibble() |>
+  filter(year == max_yr) |>
+  select(-"year") |>
+  pivot_wider(names_from = veh_power, values_from =  estimate) |>
+  mutate(`Electric Vehicle Share` = `Battery Electric Vehicle` / (`Battery Electric Vehicle` + `Hybrid Electric Vehicle` + `Internal Combustion Engine`))
+
+num_cols <- c("Battery Electric Vehicle", "Hybrid Electric Vehicle", "Internal Combustion Engine")
+shr_cols <- c("Electric Vehicle Share")
+
+county_ev_table <- psrc_data_table(df=county_ev_registrations, title="Registrations by County: January - July 2024", num_cols = num_cols, per_cols = shr_cols, lab_color = "#588527")
+
+```
+
+\pagebreak
+## County Trends
+
+King County had the highest number of electric vehicle registrations in the region in the first seven months of 2024.
+```{r county-ev-table, echo=FALSE, warning=FALSE, message=FALSE}
+
+county_ev_table
+
+```
+
+```{r ev-owner-calcs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+ev_owner <- readRDS("data/evs_by_owner.rds") |> 
+  mutate(year = as.character(year)) |>
+  rename(`Registered Vehicles` = vehicles) |>
+  mutate(owner_type = str_remove_all(owner_type, " Owner")) |>
+  select(Year = "year", Owner = "owner_type", "Registered Vehicles")
+
+ev_owner_chart <- psrc_column_chart(df=ev_owner, x="Year", y="Registered Vehicles", fill="Owner", colors=c("#BCBEC0", "#F05A28"), title="Electric Vehicle Registration by Ownership: January - July", source="Source: Washington State Department of Licensing", pos = "stack")
+
+```
+
+## Fleet vs Individual Consumer
+The largest share of electric vehicle registrations are consistently for individual households as opposed to private business. In 2024, more than 95% of the electric vehicle registrations were for individuals. It should be noted that electric vehicles for public entinities that are exempt from vehicle registrations are not inlcuded in these figures.
+
+```{r owner-chart, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8}
+
+ev_owner_chart
+
+```
+
+```{r ev-charger-calcs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+ev_charging_counties <- readRDS("data/total_ev_public_charging_counties.rds") |> 
+  pivot_longer(!c(year, county), values_to = "Chargers", names_to = "Charger Type") |>
+  mutate(`Charger Type` = str_replace_all(`Charger Type`, "level1", "Level 1")) |>
+  mutate(`Charger Type` = str_replace_all(`Charger Type`, "level2", "Level 2")) |>
+  mutate(`Charger Type` = str_replace_all(`Charger Type`, "fast_charge", "Fast Charge")) |>
+  mutate(year = as.character(year))
+
+ev_charging_region <- ev_charging_counties |> filter(county == "Region")
+
+ev_charging_chart <- psrc_column_chart(df=ev_charging_region, x="year", y="Chargers", fill="Charger Type", colors=c("#F05A28", "#91268F", "#8CC63E"), title="PSRC Region EV Public Charging Stations", source="Source: US Department of Energy, Alternative Fuels Data Center", pos = "stack")
+
+ev_charging_lyr <- readRDS("data/ev_public_charging_stations_lyr.rds")
+
+ev_chargers_map <- psrc_charging_stations_map(lyr=ev_charging_lyr, col = c("#00A7A0", "#4C4C4C"))
+
+```
+
+\pagebreak
+## Public Charging Infrastructure
+The charging time for an EV can range from less than 20 minutes using DC fast chargers to 20 hours or more using Level 1 chargers. The majority of public charging infrastructure to date has been Level 2.
+
+:::: {layout="[0.6, 0.4]"}
+
+:::{#firstcol}
+In 2017, there were 656 charging ports (not including home chargers) available for electric vehicle charging in the Central Puget Sound region. By 2024, this has increased to over 4,200 charging ports with almost as many fast charge ports (635) as there were total in 2017. 
+
+```{r ev-chargers-chart, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 5}
+
+ev_charging_chart
+
+```
+
+In 2024, King County accounted for approximately 3,140 ports (74%) of the charging ports available in the region followed by Pierce County at 454 ports (11%). Snohomish County offers more than 375 charging ports (9%) and Kitsap County has more than 250 (6%).  
+
+:::
+
+:::{#secondcol}
+
+```{r ev-chargers-map, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 3, fig.height = 6.5}
+
+ev_chargers_map
+
+```
+
+:::
+
+::::
+
+```{r ev-makes-calcs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+ev_makes <- readRDS("data/evs_by_make.rds") |> 
+  filter(year %in% c(2017, 2021, 2024)) |>
+  select(-"share") |>
+  mutate(year = as.character(year)) |>
+  rename(`Registered Vehicles` = vehicles) |>
+  pivot_wider(names_from = year, values_from = `Registered Vehicles`) |>
+  pivot_longer(!veh_make, names_to = "year", values_to = "Registered Vehicles") |>
+  mutate(`Registered Vehicles` = replace_na(`Registered Vehicles`, 0))
+
+ev_makes_chart <- psrc_bar_chart(df=ev_makes, x="veh_make", y="Registered Vehicles", fill="year", colors=c("#BCBEC0", "#BFE9E7", "#00A7A0"), title="Electric Vehicle Registrations by Manufacturer", source="Source: Washington State Department of Licensing")
+
+
+```
+
+\pagebreak
+## Electric Vehicle Manufacturers
+There are more EV manufacturers today than there were just a few years ago. In 2017, there were only seven (7) manufacturers of electric vehicles with more than 100 vehicles registered in the region. By 2021, this grew to fourteen (14) and in the first six months of 2024, that number increased to twenty(20). A majority of auto manufacturers now have EVs licensed and driven routinely on Central Puget Sound roadways.
+
+```{r ev-makes-chart, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8, fig.height = 8}
+
+ev_makes_chart
+
+```
+
+\pagebreak
+## What is the Regional Transportation Plan?
+The Regional Transportation Plan envisions an integrated system that supports the goals of VISION 2050, which calls for increased investment in transportation to support a growing population and economy. VISION 2050 emphasizes investing in transportation projects and programs that support local and regional growth centers and high-capacity transit station areas in particular. These policies emphasize the importance of public transit to achieving the VISION 2050 regional growth strategy.  
+
+![](images/rtp-emphasis-areas.png){fig-align="center"}
+
+For more information or to get invovled in the Regional Transportation Plan, please visit <https://www.psrc.org/planning-2050/regional-transportation-plan> .

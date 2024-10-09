@@ -1,0 +1,37 @@
+year,variable,estimate
+2019,Bus,94671050
+2020,Bus,51799560
+2021,Bus,35398974
+2022,Bus,46098938
+2023,Bus,56378749
+2024,Bus,63197830
+2019,Commuter Rail,2669220
+2020,Commuter Rail,1046240
+2021,Commuter Rail,359320
+2022,Commuter Rail,663994
+2023,Commuter Rail,974390
+2024,Commuter Rail,1135331
+2019,Demand Response,1140384
+2020,Demand Response,616734
+2021,Demand Response,532623
+2022,Demand Response,729716
+2023,Demand Response,958830
+2024,Demand Response,1084459
+2019,Ferry,15049608
+2020,Ferry,8663742
+2021,Ferry,10808082
+2022,Ferry,10692346
+2023,Ferry,11907758
+2024,Ferry,12230411
+2019,Light Rail & Streetcar,16630967
+2020,Light Rail & Streetcar,6607966
+2021,Light Rail & Streetcar,4907175
+2022,Light Rail & Streetcar,13708788
+2023,Light Rail & Streetcar,16835025
+2024,Light Rail & Streetcar,17513577
+2019,Vanpool,2938643
+2020,Vanpool,1422719
+2021,Vanpool,636265
+2022,Vanpool,803228
+2023,Vanpool,1094846
+2024,Vanpool,1263562
